@@ -1,0 +1,2 @@
+0 0 1 * * /usr/local/bin/python /app/manage.py update_products >> /var/log/cron.log 2>&1
+0 12 * * * /usr/local/bin/python /app/manage.py notify_user >> /var/log/cron.log 2>&1

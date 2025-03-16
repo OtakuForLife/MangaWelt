@@ -1,0 +1,62 @@
+
+services:
+    database:
+        image: postgres:latest
+        restart: always
+        environment:
+            - POSTGRES_DB=mangade
+            - POSTGRES_USER=postgres        # Username for your postgres datbase
+            - POSTGRES_PASSWORD=postgres    # Password for your postgres user
+        ports:
+            - '5432:5432'
+        volumes:
+            - ./database:/var/lib/postgresql/data
+        hostname: postgresql
+        networks:
+            - app
+    adminer:
+        image: adminer
+        restart: always
+        ports:
+            - 8080:8080
+        networks:
+            - app
+    backend:
+        stdin_open: true
+        build: 
+            context: "backend"
+            dockerfile: Dockerfile
+        restart: always
+        ports:
+            - '8000:8000'
+        volumes:
+            - ./backend:/app
+        hostname: backend
+        networks:
+            - app
+        env_file: ".env"
+        depends_on:
+            - database
+    frontend:
+        stdin_open: true
+        build: 
+            context: "frontend"
+            dockerfile: Dockerfile
+        ports:
+            - 8088:8081
+            - 19000:19000
+            - 19001:19001
+            - 19002:19002
+            - 19006:19006
+        volumes:
+            - ./frontend/:/app
+        environment:
+            - REACT_NATIVE_PACKAGER_HOSTNAME=192.168.178.56
+        restart: always
+        tty: true
+        networks:
+            - app
+
+networks:
+    app:
+        driver: bridge

@@ -1,0 +1,6 @@
+PRODUCT_TYPE = {
+    "MANGA": "MANGA",
+    "LIGHT_NOVEL": "LIGHT_NOVEL",
+    "WEBTOON": "WEBTOON", 
+    "OTHER": "OTHER"
+}
