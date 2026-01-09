@@ -1,58 +1,54 @@
-import { IonButton, IonIcon } from '@ionic/react';
-import { bookmark, bookmarkOutline } from 'ionicons/icons';
-import { useHistory } from 'react-router';
+import { memo, useCallback } from 'react';
+import { Bookmark } from 'lucide-react';
 import { BaseCard } from './common/Card/BaseCard';
 import Franchise from '../models/Franchise';
-import { useAppSelector, useAppDispatch } from '../redux/hooks';
-import { selectIsAuthenticated } from '../redux/slices/authSlice';
-import { toggleFranchiseFollow, selectFollowedFranchiseIds } from '../redux/slices/userSlice';
-//import { log, LogLevel } from '../utils/logger';
+import { useAppSelector } from '../hooks/useAppSelector';
+import { useAppDispatch } from '../hooks/useAppDispatch';
+import { toggleFranchiseFollow, selectFollowedFranchiseIds } from '../store/slices/franchiseSlice';
+import { Button } from './ui/button';
 
 interface FranchiseCardProps {
     franchise: Franchise;
+    onClick?: () => void;
 }
 
-function FranchiseCard({franchise}: FranchiseCardProps) {
+function FranchiseCard({franchise, onClick}: FranchiseCardProps) {
     const dispatch = useAppDispatch();
-    const isAuthenticated = useAppSelector(selectIsAuthenticated);
     const isFollowing = useAppSelector(selectFollowedFranchiseIds).includes(franchise.id);
-    const history = useHistory();
 
-    const handleFollowClick = async (e: React.MouseEvent) => {
-        e.preventDefault(); // Prevent card navigation when clicking the button
-        if (!isAuthenticated) {
-            history.push('/login');
-            return;
-        }
+    const handleFollowClick = useCallback(async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent card navigation when clicking the button
 
         try {
             await dispatch(toggleFranchiseFollow(franchise.id)).unwrap();
-            // log(`Successfully ${isFollowing ? 'unfollowed' : 'followed'} franchise`, LogLevel.INFO, 'FranchiseCard');
         } catch (error) {
-            // log(`Failed to ${isFollowing ? 'unfollow' : 'follow'} franchise: ${error}`, LogLevel.ERROR, 'FranchiseCard');
+            console.error(`Failed to ${isFollowing ? 'unfollow' : 'follow'} franchise:`, error);
         }
-    };
+    }, [dispatch, franchise.id, isFollowing]);
 
     return (
-        <BaseCard 
+        <BaseCard
             title={franchise.title}
-            href={`/app/franchise/${franchise.id}`}
-            className='w-43 sm:w-70 md:w-60 lg:w-60 ion-padding'
+            onClick={onClick}
+            className='w-43 sm:w-70 md:w-60 lg:w-60 p-4'
             imageUrl={franchise.image}
             imageAlt={franchise.title}
         >
             <div className="flex justify-center mt-2">
-                <IonButton
+                <Button
                     onClick={handleFollowClick}
-                    color={isFollowing ? 'primary' : 'medium'}
-                    size="small"
+                    variant={isFollowing ? 'default' : 'secondary'}
+                    size="sm"
                 >
-                    <IonIcon slot="start" icon={isFollowing ? bookmark : bookmarkOutline} />
+                    <Bookmark className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
                     {isFollowing ? 'Bookmarked' : 'Bookmark'}
-                </IonButton>
+                </Button>
             </div>
         </BaseCard>
     );
 }
 
-export default FranchiseCard;
+// Memoize to prevent unnecessary re-renders
+export default memo(FranchiseCard);
+

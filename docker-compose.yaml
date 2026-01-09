@@ -4,13 +4,13 @@ services:
         image: postgres:latest
         restart: always
         environment:
-            - POSTGRES_DB=mangade
-            - POSTGRES_USER=postgres        # Username for your postgres datbase
-            - POSTGRES_PASSWORD=postgres    # Password for your postgres user
+            - POSTGRES_DB=mangawelt
+            - POSTGRES_USER=admin        # Username for your postgres datbase
+            - POSTGRES_PASSWORD=klnFe5oVOI1c6dn3Aub6hkBeI    # Password for your postgres user
         ports:
             - '5432:5432'
         volumes:
-            - ./database:/var/lib/postgresql/data
+            - ./database:/var/lib/postgresql
         hostname: postgresql
         networks:
             - app
@@ -23,14 +23,16 @@ services:
             - app
     backend:
         stdin_open: true
-        build: 
+        build:
             context: "backend"
             dockerfile: Dockerfile
         restart: always
         ports:
-            - '8000:8000'
+            - '0.0.0.0:8000:8000'
         volumes:
             - ./backend:/app
+        environment:
+            - DEBUG=True
         hostname: backend
         networks:
             - app
@@ -39,21 +41,21 @@ services:
             - database
     frontend:
         stdin_open: true
-        build: 
+        build:
             context: "frontend"
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.dev
         ports:
-            - 8088:8081
-            - 19000:19000
-            - 19001:19001
-            - 19002:19002
-            - 19006:19006
+            - '5173:5173'
         volumes:
             - ./frontend/:/app
-        environment:
-            - REACT_NATIVE_PACKAGER_HOSTNAME=192.168.178.56
+            - /app/node_modules
         restart: always
         tty: true
+        environment:
+            - FRONTEND_PORT=5173
+            - NODE_ENV=development
+            - WATCHPACK_POLLING=true
+            - CHOKIDAR_USEPOLLING=true
         networks:
             - app
 

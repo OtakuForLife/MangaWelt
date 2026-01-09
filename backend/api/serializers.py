@@ -24,7 +24,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['isbn', 'title', 'description', 'image', 'release_date', 'type', 'link_to_provider', 'franchise', 'publisher']
+        fields = ['isbn', 'title', 'description', 'image', 'release_date', 'type', 'link_to_provider', 'franchise', 'publisher', 'is_owned']
         extra_kwargs = {}
 
 
@@ -33,7 +33,7 @@ class FranchiseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Franchise
-        fields = ["id", "title", "description", "image", "products"]
+        fields = ["id", "title", "description", "image", "products", "is_followed"]
 
     def get_products(self, obj):
         return [product.isbn for product in obj.products.all()]
@@ -44,18 +44,3 @@ class PublisherSerializer(serializers.ModelSerializer):
         model = Publisher
         fields = ["id", "name", "website", "image", "products"]
         extra_kwargs = {}
-
-
-class UserDataSerializer(serializers.ModelSerializer):
-    owned_products = serializers.SerializerMethodField()
-    followed_franchises = serializers.SerializerMethodField()
-
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'owned_products', 'followed_franchises']
-
-    def get_owned_products(self, obj):
-        return [product.isbn for product in obj.owned_products.all()]
-
-    def get_followed_franchises(self, obj):
-        return [franchise.id for franchise in obj.subscriptions.all()]

@@ -11,3 +11,4 @@ export function parseDate(dateStr: string | undefined): Date {
   const [day, month, year] = dateStr.split('.');
   return new Date(Number(year), Number(month) - 1, Number(day));
 }
+

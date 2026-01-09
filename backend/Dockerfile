@@ -25,5 +25,9 @@ RUN crontab /etc/cron.d/app-cron
 # Create the log file to be able to run tail
 RUN touch /var/log/cron.log
 
+# Create entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Run the command on container startup
-CMD cron && python manage.py runserver 0.0.0.0:8000
+ENTRYPOINT ["docker-entrypoint.sh"]

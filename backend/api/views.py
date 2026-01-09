@@ -8,8 +8,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from .serializers import UserSerializer, ProductSerializer, FranchiseSerializer, PublisherSerializer, UserDataSerializer
-from .models import Franchise, Product, Publisher, DeviceToken
+from .serializers import UserSerializer, ProductSerializer, FranchiseSerializer, PublisherSerializer
+from .models import Franchise, Product, Publisher
 
 
 """
@@ -60,20 +60,10 @@ class PublisherListCreate(generics.ListCreateAPIView):
 """
 Public views
 """
-class CreateUserView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [AllowAny]
-
-
-
-"""
-User views
-"""
 class ProductList(generics.ListAPIView):
     serializer_class = ProductSerializer
     permission_classes = [AllowAny]
-    
+
     def get_queryset(self):
         return Product.objects.all()
 
@@ -81,7 +71,7 @@ class ProductList(generics.ListAPIView):
 class FranchiseList(generics.ListAPIView):
     serializer_class = FranchiseSerializer
     permission_classes = [AllowAny]
-    
+
     def get_queryset(self):
         return Franchise.objects.all()
 
@@ -89,56 +79,9 @@ class FranchiseList(generics.ListAPIView):
 class PublisherList(generics.ListAPIView):
     serializer_class = PublisherSerializer
     permission_classes = [AllowAny]
-    
+
     def get_queryset(self):
         return Publisher.objects.all()
-
-
-class FollowedFranchiseList(generics.ListAPIView):
-    serializer_class = FranchiseSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        return Franchise.objects.filter(follower=self.request.user)
-
-class FollowFranchise(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, franchise_id):
-        franchise = get_object_or_404(Franchise, id=franchise_id)
-        user = request.user
-        
-        if franchise.follower.filter(id=user.id).exists():
-            franchise.follower.remove(user)
-            return Response(
-                {"detail": "Successfully unfollowed franchise"},
-                status=status.HTTP_200_OK
-            )
-        else:
-            franchise.follower.add(user)
-            return Response(
-                {"detail": "Successfully followed franchise"},
-                status=status.HTTP_200_OK
-            )
-
-class UnfollowFranchise(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, franchise_id):
-        franchise = get_object_or_404(Franchise, id=franchise_id)
-        user = request.user
-        
-        if not franchise.follower.filter(id=user.id).exists():
-            return Response(
-                {"detail": "Not following this franchise"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        franchise.follower.remove(user)
-        return Response(
-            {"detail": "Successfully unfollowed franchise"},
-            status=status.HTTP_200_OK
-        )
 
 class LogEntryView(APIView):
     permission_classes = [AllowAny]  # Adjust according to your security needs
@@ -172,47 +115,50 @@ class LogEntryView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class DeviceTokenView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        token = request.data.get('token')
-        if not token:
-            return Response({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        DeviceToken.objects.update_or_create(
-            user=request.user,
-            token=token,
-        )
-        
-        return Response({'status': 'Token registered'}, status=status.HTTP_200_OK)
-
 class ToggleProductOwned(APIView):
-    permission_classes = [IsAuthenticated]
+    """
+    Toggle product ownership state (global, not user-specific)
+    """
+    permission_classes = [AllowAny]
 
     def post(self, request, product_id):
         product = get_object_or_404(Product, isbn=product_id)
-        user = request.user
-        
-        if product.owners.filter(id=user.id).exists():
-            product.owners.remove(user)
-            return Response(
-                {"detail": "Product marked as not owned"},
-                status=status.HTTP_200_OK
-            )
-        else:
-            product.owners.add(user)
-            return Response(
-                {"detail": "Product marked as owned"},
-                status=status.HTTP_200_OK
-            )
+
+        # Toggle the is_owned field
+        product.is_owned = not product.is_owned
+        product.save()
+
+        return Response(
+            {
+                "detail": "Product marked as owned" if product.is_owned else "Product marked as not owned",
+                "is_owned": product.is_owned
+            },
+            status=status.HTTP_200_OK
+        )
 
 
-class UserDataView(generics.RetrieveAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = UserDataSerializer
+class ToggleFranchiseFollow(APIView):
+    """
+    Toggle franchise follow state (global, not user-specific)
+    """
+    permission_classes = [AllowAny]
 
-    def get_object(self):
-        return self.request.user
+    def post(self, request, franchise_id):
+        franchise = get_object_or_404(Franchise, id=franchise_id)
+
+        # Toggle the is_followed field
+        franchise.is_followed = not franchise.is_followed
+        franchise.save()
+
+        return Response(
+            {
+                "detail": "Successfully followed franchise" if franchise.is_followed else "Successfully unfollowed franchise",
+                "is_followed": franchise.is_followed
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+
 
 

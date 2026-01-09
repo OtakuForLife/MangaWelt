@@ -4,5 +4,6 @@ export default interface Franchise {
     description: string;
     image: string;
     products: string[]; // array of product ISBNs
-    is_following: boolean;
+    is_followed: boolean;
 }
+

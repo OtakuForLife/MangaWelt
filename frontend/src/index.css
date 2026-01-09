@@ -1,0 +1,249 @@
+@import "tailwindcss";
+
+@layer base {
+  /* Prevent scrolling on mobile - app should fit viewport exactly */
+  html, body {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100vh;
+    /* Support for safe areas (notches, status bars, etc.) */
+    height: 100dvh; /* Dynamic viewport height */
+    /* Set background to match theme or fallback to black */
+    background-color: var(--color-main-content-background, #000000);
+  }
+
+  #root {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height */
+    overflow: hidden;
+    background-color: var(--color-main-content-background, #000000);
+    /* Add safe area padding for edge-to-edge display */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  :root {
+    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    /* Default theme colors */
+    --color-nav-sidebar-background: #111827;
+    --color-nav-sidebar-text: #adadad;
+
+    --color-explorer-background: #1f2937;
+    --color-explorer-item-background-hover: #3a4657;
+    --color-explorer-item-text: #adadad;
+    --color-explorer-item-text-hover: #adadad;
+
+    --color-main-tabs-background: #1f2937;
+
+    --color-main-tab-active-background: #19202D;
+    --color-main-tab-active-background-hover: #19202D;
+    --color-main-tab-active-text: #adadad;
+    --color-main-tab-active-text-hover: #adadad;
+    
+    --color-main-tab-inactive-background: #19202D;
+    --color-main-tab-inactive-background-hover: #19202D;
+    --color-main-tab-inactive-text: #adadad;
+    --color-main-tab-inactive-text-hover: #adadad;
+
+    --color-main-content-background: #111827;
+    --color-main-content-title: #adadad;
+    --color-main-content-text: #adadad;
+
+    /* Editor theme colors */
+    --color-editor-selection: #3b82f620;
+    --color-editor-cursor: #3b82f6;
+    --color-editor-line-number: #6b7280;
+    --color-editor-syntax-keyword: #a78bfa;
+    --color-editor-syntax-string: #34d399;
+    --color-editor-syntax-comment: #6b7280;
+    --color-editor-syntax-function: #f87171;
+    --color-editor-syntax-variable: #adadad;
+    --color-editor-syntax-link: #3746e7;
+    --caret-color: #3b82f6;
+  }
+}
+
+@layer utilities {
+  /* Theme-specific utility classes with custom prefix */
+  .theme-nav-sidebar-background {
+    background-color: var(--color-nav-sidebar-background);
+  }
+
+  .theme-nav-sidebar-text {
+    color: var(--color-nav-sidebar-text);
+  }
+
+  .theme-explorer-background {
+    background-color: var(--color-explorer-background);
+  }
+
+  .theme-explorer-item-background:hover {
+    background-color: var(--color-explorer-item-background-hover);
+  }
+
+  /* Drag-over styling for tree items */
+  .drag-over .theme-explorer-item-background {
+    background-color: var(--color-explorer-background) !important;
+  }
+
+  .theme-explorer-item-text {
+    color: var(--color-explorer-item-text);
+  }
+
+  .theme-explorer-item-text-hover {
+    color: var(--color-explorer-item-text-hover);
+  }
+
+  .theme-main-tabs-background {
+    background-color: var(--color-main-tabs-background);
+  }
+
+  .theme-main-tab-background:not([data-state="active"]) {
+    background-color: var(--color-main-tab-inactive-background);
+  }
+  .theme-main-tab-text:not([data-state="active"]) {
+    color: var(--color-main-tab-inactive-text);
+  }
+
+  .theme-main-tab-text:not([data-state="active"]):hover {
+    color: var(--color-main-tab-inactive-text-hover);
+  }
+
+  .theme-main-tab-text[data-state="active"]  {
+    color: var(--color-main-tab-active-text);
+  }
+
+  .theme-main-tab-background[data-state="active"] {
+    background-color: var(--color-main-tab-active-background);
+  }
+
+  .theme-main-tab-background:not([data-state="active"]):hover {
+    background-color: var(--color-main-tab-inactive-background-hover);
+  }
+
+
+  .theme-main-content-background {
+    background-color: var(--color-main-content-background);
+  }
+  .theme-main-content-text {
+    color: var(--color-main-content-text);
+  }
+
+  /* Editor theme utility classes */
+  .theme-editor-background {
+    background-color: var(--color-main-content-background);
+  }
+
+  .theme-editor-text {
+    color: var(--color-main-content-text);
+  }
+
+  /* Table extension styles */
+  .cm-table-hidden {
+    display: none;
+  }
+
+  .cm-table-widget-container {
+    margin: 0;
+    padding: 0;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    display: inline-block;
+    width: 100%;
+    vertical-align: top;
+  }
+
+  .cm-table-widget {
+    background-color: var(--color-main-content-background);
+    color: var(--color-main-content-text);
+    padding: 0;
+    margin: 0;
+    display: block;
+    width: 100%;
+  }
+
+  .cm-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
+    font-size: 0.875rem;
+  }
+
+  .cm-table-header {
+    background-color: var(--color-explorer-background);
+    color: var(--color-explorer-item-text);
+    padding: 0.25rem 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid var(--color-explorer-item-background-hover);
+    user-select: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    position: relative;
+    height: auto;
+    vertical-align: middle;
+  }
+
+  .cm-table-header:hover {
+    background-color: var(--color-explorer-item-background-hover);
+  }
+
+  .cm-table-cell {
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid var(--color-explorer-item-background-hover);
+    height: auto;
+    vertical-align: middle;
+  }
+
+  .cm-table-row {
+    margin: 0;
+    padding: 0;
+    height: auto;
+    line-height: 1.2;
+  }
+
+  .cm-table-row:hover {
+    background-color: var(--color-explorer-item-background-hover);
+  }
+
+  .cm-table-row:last-child .cm-table-cell {
+    border-bottom: none;
+  }
+
+  .cm-table thead tr {
+    margin: 0;
+    padding: 0;
+    height: auto;
+  }
+
+  .cm-table tbody tr {
+    margin: 0;
+    padding: 0;
+    height: auto;
+  }
+
+  .cm-table-error {
+    padding: 0.5rem;
+    color: #ef4444;
+    text-align: center;
+    font-style: italic;
+    font-size: 0.875rem;
+  }
+
+  .sort-indicator {
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+    color: var(--color-explorer-item-text);
+  }
+
+}

@@ -1,23 +1,24 @@
-import { IonCol, IonGrid, IonRow } from '@ionic/react';
 import Franchise from '../models/Franchise';
 import FranchiseCard from './FranchiseCard';
 
+interface FranchiseWithClick extends Franchise {
+  onClick?: () => void;
+}
 
 interface FranchiseCardViewProps {
-  franchises: Franchise[];
+  franchises: FranchiseWithClick[];
 }
 
 function FranchiseCardView({ franchises = [] }: FranchiseCardViewProps) {
   return (
-    <IonGrid>
-      <IonRow className='ion-justify-content-center'>
-        {franchises.map((franchise) => (
-          <IonCol size='auto' className='ion-padding' key={franchise.id}>
-            <FranchiseCard franchise={franchise} />
-          </IonCol>
-        ))}
-      </IonRow>
-    </IonGrid>
+    <div className="flex flex-wrap justify-center gap-4">
+      {franchises.map((franchise) => (
+        <div key={franchise.id}>
+          <FranchiseCard franchise={franchise} onClick={franchise.onClick} />
+        </div>
+      ))}
+    </div>
   );
 }
 export default FranchiseCardView;
+

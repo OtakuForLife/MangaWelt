@@ -7,6 +7,8 @@ interface Product {
     type: string;
     link_to_provider: string;
     franchise: string;
+    is_owned: boolean;
 }
 
 export default Product;
+

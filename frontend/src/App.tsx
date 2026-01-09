@@ -1,120 +1,142 @@
+import { Provider } from 'react-redux'
+import { setupStore } from './store'
+import { useEffect, useState } from 'react'
+import { useAppDispatch } from './hooks/useAppDispatch'
+import { fetchProducts } from './store/slices/productSlice'
+import { fetchFranchises } from './store/slices/franchiseSlice'
+import ExpandableSidebar from './components/ExpandableSidebar'
+import BottomTabNavigation from './components/BottomTabNavigation'
+import Loading from './components/Loading'
+import ErrorBoundary from './components/ErrorBoundary'
 
-import {
-  IonApp,
-  IonRouterOutlet,
-  IonSplitPane,
-  setupIonicReact
-} from '@ionic/react';
-
-/* Core CSS required for Ionic components to work properly */
-import '@ionic/react/css/core.css';
-
-/* Basic CSS for apps built with Ionic */
-import '@ionic/react/css/normalize.css';
-import '@ionic/react/css/structure.css';
-import '@ionic/react/css/typography.css';
-
-/* Optional CSS utils that can be commented out */
-import '@ionic/react/css/padding.css';
-import '@ionic/react/css/float-elements.css';
-import '@ionic/react/css/text-alignment.css';
-import '@ionic/react/css/text-transformation.css';
-import '@ionic/react/css/flex-utils.css';
-import '@ionic/react/css/display.css';
-
-
-/* import '@ionic/react/css/palettes/dark.always.css'; */
-/* import '@ionic/react/css/palettes/dark.class.css'; */
-import '@ionic/react/css/palettes/dark.system.css';
-
-/* Theme variables */
-import './theme/variables.css';
-import { IonReactRouter } from '@ionic/react-router';
-import { Redirect, Route } from 'react-router';
-import TestPage from './pages/TestPage';
-import ProductPage from './pages/ProductPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import Menu from './components/Menu';
-import FranchisePage from './pages/FranchisePage';
-import FranchiseDetailPage from './pages/FranchiseDetailPage';
-import RegisterPage from './pages/RegisterPage';
-import LoginPage from './pages/LoginPage';
+// Import pages
 import ReleasePage from './pages/ReleasePage';
-import ToBuyPage from './pages/ToBuyPage';
-import { useEffect, useState } from 'react';
-import { IonContent } from '@ionic/react';
-import { useAppDispatch, useAppSelector } from './redux/hooks';
-import { initPushNotifications } from './utils/pushNotifications';
-import { selectIsAuthenticated, checkAuthStatus } from './redux/slices/authSlice';
-//import { log, LogLevel } from './utils/logger';
-import Loading from './components/Loading';
-import { initializePlatform } from './redux/slices/deviceSlice';
 import BookmarkPage from './pages/BookmarkPage';
+import ToBuyPage from './pages/ToBuyPage';
+import FranchisePage from './pages/FranchisePage';
+import SettingsPage from './pages/SettingsPage';
+import ProductDetailPage from './pages/ProductDetailPage';
+import FranchiseDetailPage from './pages/FranchiseDetailPage';
 
-setupIonicReact();
+type ViewType = 'releases' | 'followed' | 'to-buy' | 'franchises' | 'settings' | 'product-detail' | 'franchise-detail'
 
-function App() {
-  const dispatch = useAppDispatch();
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const [isInitialized, setIsInitialized] = useState(false);
+interface ViewState {
+  type: ViewType
+  params?: {
+    isbn?: string
+    id?: string
+  }
+}
 
-  useEffect(() => {
-    dispatch(initializePlatform());
-  }, [dispatch]);
+const AppContent = () => {
+  const dispatch = useAppDispatch()
+  const [currentView, setCurrentView] = useState<ViewState>({ type: 'releases' })
+  const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
     const init = async () => {
-      await dispatch(checkAuthStatus());
-      setIsInitialized(true);
-    };
-    init();
-  }, [dispatch]);
-
-  // Initialize push notifications when authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      initPushNotifications()
-        .catch(error => {
-          // await log(`Failed to initialize push notifications: ${error}`, LogLevel.ERROR, 'PushNotifications');
-          console.error('Failed to initialize push notifications:', error);
-        });
+      // Load initial data - continue even if API calls fail
+      try {
+        await Promise.all([
+          dispatch(fetchProducts()),
+          dispatch(fetchFranchises())
+        ])
+      } catch (error) {
+        console.error('Failed to load initial data:', error)
+        // Continue anyway - user can configure backend URL in settings
+      }
+      setIsInitialized(true)
     }
-  }, [isAuthenticated]);
-  
+    init()
+  }, [dispatch])
+
+  const handleViewChange = (viewId: string) => {
+    setCurrentView({ type: viewId as ViewType })
+  }
+
+  const handleProductClick = (isbn: string) => {
+    setCurrentView({ type: 'product-detail', params: { isbn } })
+  }
+
+  const handleFranchiseClick = (id: string) => {
+    setCurrentView({ type: 'franchise-detail', params: { id } })
+  }
+
+  const handleBackToList = () => {
+    setCurrentView({ type: 'releases' })
+  }
+
   if (!isInitialized) {
     return (
-      <IonApp>
-        <IonContent className="ion-padding">
-          <Loading/>
-        </IonContent>
-      </IonApp>
-    );
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
+      </div>
+    )
+  }
+
+  const renderView = () => {
+    try {
+      switch (currentView.type) {
+        case 'releases':
+          return <ReleasePage onProductClick={handleProductClick} />
+        case 'followed':
+          return <BookmarkPage onProductClick={handleProductClick} onFranchiseClick={handleFranchiseClick} />
+        case 'to-buy':
+          return <ToBuyPage onProductClick={handleProductClick} />
+        case 'franchises':
+          return <FranchisePage onFranchiseClick={handleFranchiseClick} />
+        case 'settings':
+          return <SettingsPage />
+        case 'product-detail':
+          return <ProductDetailPage isbn={currentView.params?.isbn || ''} onBack={handleBackToList} />
+        case 'franchise-detail':
+          return <FranchiseDetailPage id={currentView.params?.id || ''} onBack={handleBackToList} onProductClick={handleProductClick} />
+        default:
+          return <ReleasePage onProductClick={handleProductClick} />
+      }
+    } catch (error) {
+      console.error('Error in renderView:', error);
+      return <div style={{ padding: '20px', color: 'red' }}>Error rendering view: {String(error)}</div>
+    }
   }
 
   return (
-    <IonApp>
-      <IonReactRouter>
-        <IonSplitPane contentId='main'>
-          <Menu />
-          <IonRouterOutlet id='main'>
-            <Route exact path="/app/test" component={TestPage} />
-            <Route exact path="/app/settings" component={TestPage} />
-            
-            <Route exact path="/app/releases" component={ReleasePage} />
-            <Route exact path="/app/followed" component={BookmarkPage} />
-            <Route exact path="/app/to-buy" component={ToBuyPage} />
-            <Route exact path="/app/product/:isbn" component={ProductDetailPage} />
-            <Route exact path="/app/product" component={ProductPage} />
-            <Route exact path="/app/franchises" component={FranchisePage} />
-            <Route exact path="/app/franchise/:id" component={FranchiseDetailPage} />
-            <Route exact path="/register" component={RegisterPage} />
-            <Route exact path="/login" component={LoginPage} />
-            <Redirect to="/app/releases" />
-          </IonRouterOutlet>
-        </IonSplitPane>
-      </IonReactRouter>
-    </IonApp>
-  );
-};
+    <ErrorBoundary name="App">
+      <div className="flex w-full h-screen bg-white overflow-hidden">
+        {/* Desktop: Expandable Sidebar */}
+        <ExpandableSidebar
+          activeView={currentView.type}
+          onViewChange={handleViewChange}
+        />
 
-export default App;
+        {/* Main content area */}
+        <main className="flex-1 overflow-auto pb-16 md:pb-0">
+          <ErrorBoundary name="MainView">
+            {renderView()}
+          </ErrorBoundary>
+        </main>
+
+        {/* Mobile: Bottom Tab Navigation */}
+        <BottomTabNavigation
+          activeView={currentView.type}
+          onViewChange={handleViewChange}
+        />
+      </div>
+    </ErrorBoundary>
+  )
+}
+
+function App() {
+  const store = setupStore()
+  return (
+    <Provider store={store}>
+      <AppContent />
+    </Provider>
+  )
+}
+
+export default App
+
+
+
+

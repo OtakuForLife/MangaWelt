@@ -1,40 +1,66 @@
-import { useEffect } from 'react';
-import { PageLayout } from '../components/common/Layout/PageLayout';
+import { useMemo, useState } from 'react';
 import FranchiseCardView from '../components/FranchiseCardView';
+import { useAppSelector } from '../hooks/useAppSelector';
+import { selectFranchises } from '../store/slices/franchiseSlice';
 import Loading from '../components/Loading';
-import Franchise from '../models/Franchise';
-import { useAppDispatch, useAppSelector } from '../redux/hooks';
-import { selectFranchises, selectFranchisesStatus, fetchFranchises } from '../redux/slices/franchiseSlice';
-import { log, LogLevel } from '../utils/logger';
-import { useLoadUserData } from '../hooks/useLoadUserData';
+import { Input } from '../components/ui/input';
 
-function FranchisePage() {
-    const dispatch = useAppDispatch();
-    const franchiseMap = useAppSelector(selectFranchises);
-    const status = useAppSelector(selectFranchisesStatus);
-    
-    // Load user data when authenticated
-    useLoadUserData();
+interface FranchisePageProps {
+  onFranchiseClick: (id: string) => void;
+}
 
-    const franchises: Franchise[] = Object.values(franchiseMap);
-      
-    log("FranchiseMap: "+JSON.stringify(franchiseMap), LogLevel.INFO);
-    
-    useEffect(() => {
-        if (status === 'idle') {
-            dispatch(fetchFranchises());
-        }
-    }, [status, dispatch]);
-    
-    if (status === 'loading') {
-        return <Loading />;
-    }
+function FranchisePage({ onFranchiseClick }: FranchisePageProps) {
+  const franchisesMap = useAppSelector(selectFranchises);
+  const [searchText, setSearchText] = useState('');
 
-    return (
-        <PageLayout title="Franchises">
-            <FranchiseCardView franchises={franchises}/>
-        </PageLayout>
+  const filteredFranchises = useMemo(() => {
+    const allFranchises = Object.values(franchisesMap);
+    
+    if (!searchText) return allFranchises;
+    
+    const searchLower = searchText.toLowerCase();
+    return allFranchises.filter(franchise => 
+      franchise.title.toLowerCase().includes(searchLower) ||
+      franchise.description?.toLowerCase().includes(searchLower)
     );
+  }, [franchisesMap, searchText]);
+
+  if (Object.keys(franchisesMap).length === 0) {
+    return (
+      <div className="p-8">
+        <h1 className="text-3xl font-bold mb-6">Franchises</h1>
+        <Loading />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-6">Franchises</h1>
+      
+      <div className="mb-6">
+        <Input
+          type="text"
+          placeholder="Search franchises..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="max-w-xs"
+        />
+      </div>
+
+      {filteredFranchises.length === 0 ? (
+        <p className="text-gray-500 text-center py-8">No franchises found matching your search.</p>
+      ) : (
+        <FranchiseCardView 
+          franchises={filteredFranchises.map(f => ({
+            ...f,
+            onClick: () => onFranchiseClick(f.id)
+          }))} 
+        />
+      )}
+    </div>
+  );
 }
 
 export default FranchisePage;
+

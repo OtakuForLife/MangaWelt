@@ -1,37 +1,30 @@
+import { memo } from 'react';
 import { BaseCard } from './common/Card/BaseCard';
 import Product from '../models/Product';
-import { useAppSelector } from '../redux/hooks';
-import { selectIsAuthenticated } from '../redux/slices/authSlice';
-import { selectIsProductOwned } from '../redux/slices/productSlice';
-import { IonIcon } from '@ionic/react';
-import { checkmarkCircle } from 'ionicons/icons';
+import { useAppSelector } from '../hooks/useAppSelector';
+import { selectIsProductOwned } from '../store/slices/productSlice';
+import { CheckCircle } from 'lucide-react';
 
 interface ProductCardProps {
-  product: Product
+  product: Product;
+  onClick?: () => void;
 }
 
-function ProductCard({product}: ProductCardProps) {
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+function ProductCard({product, onClick}: ProductCardProps) {
   const isOwned = useAppSelector(state => selectIsProductOwned(state, product.isbn));
 
   return (
-    <BaseCard 
+    <BaseCard
       title={product.title}
-      href={`/app/product/${product.isbn}`}
-      className='w-43 sm:w-70 md:w-60 lg:w-60 ion-padding'
+      onClick={onClick}
+      className='w-43 sm:w-70 md:w-60 lg:w-60 p-4'
       imageUrl={product.image}
       imageAlt={product.title}
       topRightContent={
-        isAuthenticated && isOwned ? (
+        isOwned ? (
           <div className="absolute top-2 right-2 z-10">
-            <IonIcon 
-              icon={checkmarkCircle} 
-              color="success" 
-              className="text-xl"
-              style={{ 
-                backgroundColor: 'white', 
-                borderRadius: '50%' 
-              }}
+            <CheckCircle
+              className="w-6 h-6 text-green-500 bg-white rounded-full"
             />
           </div>
         ) : null
@@ -44,4 +37,6 @@ function ProductCard({product}: ProductCardProps) {
   );
 }
 
-export default ProductCard;
+// Memoize to prevent unnecessary re-renders when parent re-renders
+export default memo(ProductCard);
+

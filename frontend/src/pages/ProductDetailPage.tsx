@@ -1,146 +1,98 @@
-import { 
-  IonButtons, 
-  IonContent, 
-  IonHeader, 
-  IonLabel, 
-  IonMenuButton, 
-  IonPage, 
-  IonTitle, 
-  IonToolbar, 
-  IonGrid, 
-  IonRow, 
-  IonCol, 
-  IonImg, 
-  IonText,
-  IonButton,
-  IonIcon 
-} from '@ionic/react';
-import { useParams, useHistory } from 'react-router';
-import { useAppSelector, useAppDispatch } from '../redux/hooks';
-import { 
-  selectProducts, 
-  selectProductsStatus, 
-  fetchProducts,
-} from '../redux/slices/productSlice';
-import { selectIsAuthenticated } from '../redux/slices/authSlice';
-import { useEffect } from 'react';
-import { log, LogLevel } from '../utils/logger';
-import Product from '../models/Product';
-import { libraryOutline, checkmarkCircle, checkmarkCircleOutline } from 'ionicons/icons';
-import { selectIsProductOwned } from '../redux/slices/productSlice';
-import { toggleProductOwned } from '../redux/slices/userSlice';
-import { useLoadUserData } from '../hooks/useLoadUserData';
+import { useAppSelector } from '../hooks/useAppSelector';
+import { useAppDispatch } from '../hooks/useAppDispatch';
+import { selectProducts, toggleProductOwned } from '../store/slices/productSlice';
+import { Button } from '../components/ui/button';
+import { ArrowLeft, CheckCircle, ShoppingCart } from 'lucide-react';
+import Loading from '../components/Loading';
+import Product from '@/models/Product';
 
-function ProductDetailPage() {
-  const { isbn } = useParams<{ isbn: string }>();
+interface ProductDetailPageProps {
+  isbn: string;
+  onBack: () => void;
+}
+
+function ProductDetailPage({ isbn, onBack }: ProductDetailPageProps) {
   const dispatch = useAppDispatch();
-  const history = useHistory();
-  
-  // Load user data when authenticated
-  useLoadUserData();
+  const products = useAppSelector(selectProducts);
+  const product: Product = products[isbn];
 
-  const productMap = useAppSelector(selectProducts);
-  const status = useAppSelector(selectProductsStatus);
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const isOwned = useAppSelector(state => selectIsProductOwned(state, isbn));
-  const product: Product = productMap[isbn];
-
-  useEffect(() => {
-    if (status === 'idle') {
-      dispatch(fetchProducts());
-    }
-  }, [status, dispatch]);
-
-  const handleOwnedClick = async () => {
-    if (!isAuthenticated) {
-      history.push('/login');
-      return;
-    }
-
+  const handleToggleOwned = async () => {
     try {
       await dispatch(toggleProductOwned(isbn)).unwrap();
-      // Refresh products to get updated ownership status
-      dispatch(fetchProducts());
     } catch (error) {
-      log('Failed to toggle product owned status', LogLevel.ERROR, 'ProductDetailPage');
+      console.error('Failed to toggle product ownership:', error);
     }
   };
 
+  if (!product) {
+    return (
+      <div className="p-8">
+        <Button onClick={onBack} variant="ghost" className="mb-4">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
+        <Loading />
+      </div>
+    );
+  }
+
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonButtons slot="start">
-            <IonMenuButton />
-          </IonButtons>
-          <IonTitle>{product?.title || 'Product Details'}</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="ion-padding">
-        {status === 'loading' ? (
-          <IonText color="medium" className="ion-text-center">
-            <p>Loading...</p>
-          </IonText>
-        ) : !product && Object.keys(productMap).length > 0 ? (
-          <IonText color="medium" className="ion-text-center">
-            <p>Product not found</p>
-          </IonText>
-        ) : product ? (
-          <IonGrid>
-            <IonRow className="ion-justify-content-center">
-              <IonCol size="12" sizeMd="8" sizeLg="6">
-                <IonImg src={product.image} className="h-64 object-contain ion-padding-bottom" />
-                <div className="ion-text-center ion-padding-bottom">
-                  <IonButton 
-                    expand="block"
-                    onClick={handleOwnedClick}
-                    color={isOwned ? 'success' : 'medium'}
-                    className="ion-margin-horizontal ion-margin-bottom"
-                  >
-                    <IonIcon slot="start" icon={isOwned ? checkmarkCircle : checkmarkCircleOutline} />
-                    {isOwned ? 'Owned' : 'Mark as Owned'}
-                  </IonButton>
-                  <IonButton 
-                    expand="block"
-                    href={product.link_to_provider}
-                    target="_blank"
-                    color="primary"
-                    className="ion-margin-horizontal ion-margin-bottom"
-                  >
-                    Buy Now
-                  </IonButton>
-                  {product.franchise && (
-                    <IonButton
-                      expand="block"
-                      routerLink={`/app/franchise/${product.franchise}`}
-                      color="secondary"
-                      className="ion-margin-horizontal"
-                    >
-                      <IonIcon slot="start" icon={libraryOutline} />
-                      View Franchise
-                    </IonButton>
-                  )}
-                </div>
-                <IonLabel className="ion-padding-bottom">
-                  <h1>{product.title}</h1>
-                </IonLabel>
-                <IonLabel className="ion-padding-bottom">
-                  <p>Release Date: {product.release_date}</p>
-                </IonLabel>
-                <IonLabel className="ion-text-wrap">
-                  <p>{product.description}</p>
-                </IonLabel>
-              </IonCol>
-            </IonRow>
-          </IonGrid>
-        ) : (
-          <IonText color="medium" className="ion-text-center">
-            <p>Loading products...</p>
-          </IonText>
-        )}
-      </IonContent>
-    </IonPage>
+    <div className="p-8 max-w-4xl mx-auto">
+      <Button onClick={onBack} variant="ghost" className="mb-4">
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back
+      </Button>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Product Image */}
+        <div>
+          {product.image && (
+            <img
+              src={product.image}
+              alt={product.title}
+              className="w-full h-auto object-contain rounded-lg shadow-lg"
+            />
+          )}
+        </div>
+
+        {/* Product Details */}
+        <div>
+          <h1 className="text-3xl font-bold mb-4">{product.title}</h1>
+          
+          {product.description && (
+            <p className="text-gray-700 mb-4">{product.description}</p>
+          )}
+
+          <div className="space-y-2 mb-6">
+            <p><strong>ISBN:</strong> {product.isbn}</p>
+            {product.release_date && (
+              <p><strong>Release Date:</strong> {product.release_date}</p>
+            )}
+          </div>
+
+          <Button
+            onClick={handleToggleOwned}
+            variant={product.is_owned ? 'default' : 'secondary'}
+            size="lg"
+            className="w-full"
+          >
+            {product.is_owned ? (
+              <>
+                <CheckCircle className="w-5 h-5 mr-2" />
+                Owned
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-5 h-5 mr-2" />
+                Mark as Owned
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
 export default ProductDetailPage;
+

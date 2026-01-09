@@ -1,71 +1,66 @@
-import { useEffect } from 'react';
-import { PageLayout } from '../components/common/Layout/PageLayout';
-import { useAppSelector, useAppDispatch } from '../redux/hooks';
-import { useHistory } from 'react-router';
-import { log, LogLevel } from '../utils/logger';
-import Loading from '../components/Loading';
+import { useMemo, useState } from 'react';
 import ProductCardView from '../components/ProductCardView';
-import { IonText } from '@ionic/react';
-import { selectProductsStatus, fetchProducts, selectIsProductOwned } from '../redux/slices/productSlice';
-import { useLoadUserData } from '../hooks/useLoadUserData';
+import { useAppSelector } from '../hooks/useAppSelector';
+import { selectProductsToBuy } from '../store/slices/productSlice';
+import Loading from '../components/Loading';
+import { Input } from '../components/ui/input';
 
-function ToBuyPage() {
-    const dispatch = useAppDispatch();
-    const status = useAppSelector(selectProductsStatus);
+interface ToBuyPageProps {
+  onProductClick: (isbn: string) => void;
+}
+
+function ToBuyPage({ onProductClick }: ToBuyPageProps) {
+  const productsToBuy = useAppSelector(selectProductsToBuy);
+  const [searchText, setSearchText] = useState('');
+
+  const filteredProducts = useMemo(() => {
+    if (!searchText) return productsToBuy;
     
-    // Load user data when authenticated
-    const { isAuthenticated } = useLoadUserData();
-
-    const history = useHistory();
-    const toBuyProducts = useAppSelector((state) => {
-        const allProducts = state.products.products;
-        return Object.values(allProducts).filter(product => !selectIsProductOwned(state, product.isbn));
-    });
-
-    useEffect(() => {
-        if (!isAuthenticated) {
-            history.push('/login');
-            return;
-        }
-
-        if (status === 'idle') {
-            dispatch(fetchProducts())
-                .unwrap()
-                .then(() => {
-                    log('Successfully fetched products', LogLevel.INFO, 'ToBuyPage');
-                })
-                .catch(() => {
-                    log('Failed to fetch products', LogLevel.ERROR, 'ToBuyPage');
-                });
-        }
-    }, [isAuthenticated, history, dispatch, status]);
-
-    if (!isAuthenticated) {
-        return null;
-    }
-
-    if (status === 'loading') {
-        return (
-            <PageLayout title="To Buy">
-                <Loading />
-            </PageLayout>
-        );
-    }
-
-    return (
-        <PageLayout title="To Buy">
-            {toBuyProducts.length > 0 ? (
-                <ProductCardView products={toBuyProducts} />
-            ) : (
-                <div className="ion-padding ion-text-center">
-                    <IonText color="medium">
-                        <h2>No products to buy</h2>
-                        <p>All products are marked as owned!</p>
-                    </IonText>
-                </div>
-            )}
-        </PageLayout>
+    const searchLower = searchText.toLowerCase();
+    return productsToBuy.filter(product => 
+      product.title.toLowerCase().includes(searchLower) ||
+      product.description?.toLowerCase().includes(searchLower)
     );
+  }, [productsToBuy, searchText]);
+
+  if (productsToBuy.length === 0) {
+    return (
+      <div className="p-8">
+        <h1 className="text-3xl font-bold mb-6">To Buy</h1>
+        <Loading />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-6">To Buy</h1>
+      
+      <div className="mb-6">
+        <Input
+          type="text"
+          placeholder="Search products to buy..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="max-w-xs"
+        />
+      </div>
+
+      {filteredProducts.length === 0 ? (
+        <p className="text-gray-500 text-center py-8">
+          {searchText ? 'No products found matching your search.' : 'All products are owned!'}
+        </p>
+      ) : (
+        <ProductCardView 
+          products={filteredProducts.map(p => ({
+            ...p,
+            onClick: () => onProductClick(p.isbn)
+          }))} 
+        />
+      )}
+    </div>
+  );
 }
 
 export default ToBuyPage;
+

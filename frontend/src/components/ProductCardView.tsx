@@ -1,22 +1,24 @@
-import { IonCol, IonGrid, IonRow } from '@ionic/react';
 import Product from '../models/Product';
 import ProductCard from '../components/ProductCard';
 
+interface ProductWithClick extends Product {
+  onClick?: () => void;
+}
+
 interface ProductCardViewProps {
-  products: Product[]
+  products: ProductWithClick[]
 }
 
 function ProductCardView({products}: ProductCardViewProps) {
   return (
-      <IonGrid>
-        <IonRow className='ion-justify-content-center'>
-          {products.map((item, index)=>(
-            <IonCol size='auto' className='ion-padding' key={index}>
-              <ProductCard product={item}/>
-            </IonCol>
-          ))}
-        </IonRow>
-      </IonGrid>
+    <div className="flex flex-wrap justify-center gap-4">
+      {products.map((item, index)=>(
+        <div key={index}>
+          <ProductCard product={item} onClick={item.onClick}/>
+        </div>
+      ))}
+    </div>
   );
 }
 export default ProductCardView;
+

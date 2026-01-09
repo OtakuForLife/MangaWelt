@@ -1,32 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { 
-  IonItemDivider, 
-  IonItemGroup, 
-  IonLabel, 
-  IonList,
-  IonSegment,
-  IonSegmentButton,
-  IonSelect,
-  IonSelectOption,
-  IonCard,
-  IonCardContent,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonSearchbar,
-  IonRefresher,
-  IonRefresherContent,
-  RefresherEventDetail
-} from '@ionic/react';
-import { PageLayout } from '../components/common/Layout/PageLayout';
+import { useMemo, useState } from 'react';
 import ProductCardView from '../components/ProductCardView';
-import { useAppSelector, useAppDispatch } from '../redux/hooks';
+import { useAppSelector } from '../hooks/useAppSelector';
 import Product from '../models/Product';
-import { selectProducts, selectProductsStatus, fetchProducts } from '../redux/slices/productSlice';
+import { selectProducts, selectOwnedProductIds } from '../store/slices/productSlice';
 import Loading from '../components/Loading';
 import { parseDate } from '../utils/dateUtils';
-import { fetchUserData, selectOwnedProductIds } from '../redux/slices/userSlice';
-import { useLoadUserData } from '../hooks/useLoadUserData';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 
 interface GroupedProducts {
   [key: string]: Product[];
@@ -34,25 +14,18 @@ interface GroupedProducts {
 
 type SortOption = 'date-desc' | 'date-asc' | 'name-asc' | 'name-desc';
 
-function ReleasePage() {
-  const dispatch = useAppDispatch();
+interface ReleasePageProps {
+  onProductClick: (isbn: string) => void;
+}
+
+function ReleasePage({ onProductClick }: ReleasePageProps) {
   const productMap = useAppSelector(selectProducts);
-  const status = useAppSelector(selectProductsStatus);
   const ownedProductIds = useAppSelector(selectOwnedProductIds);
-  
-  // Load user data when authenticated
-  const { isAuthenticated } = useLoadUserData();
-  
+
   // Filter and sort states
   const [searchText, setSearchText] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [owned, setOwned] = useState<string>('all');
-
-  useEffect(() => {
-    if (status === 'idle') {
-      dispatch(fetchProducts());
-    }
-  }, [status, dispatch]);
 
   const groupedProducts = useMemo(() => {
     let products: Product[] = Object.values(productMap).filter(product => product.release_date);
@@ -106,88 +79,70 @@ function ReleasePage() {
     return grouped;
   }, [productMap, searchText, sortBy, owned, ownedProductIds]);
 
-  const handleRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
-    try {
-      dispatch(fetchProducts());
-      if(isAuthenticated){
-        dispatch(fetchUserData());
-      }
-      // log('Products refreshed successfully', LogLevel.INFO, 'ReleasePage');
-    } catch (error) {
-      // log('Failed to refresh products', LogLevel.ERROR, 'ReleasePage');
-    } finally {
-      event.detail.complete();
-    }
-  };
-
-  if (status === 'loading') {
+  if (Object.keys(productMap).length === 0) {
     return (
-      <PageLayout title="Releases">
+      <div className="p-8">
+        <h1 className="text-3xl font-bold mb-6">Releases</h1>
         <Loading />
-      </PageLayout>
+      </div>
     );
   }
 
   return (
-    <PageLayout title="Releases">
-      <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
-        <IonRefresherContent />
-      </IonRefresher>
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-6">Releases</h1>
+      
+      {/* Filters */}
+      <div className="mb-6 flex flex-wrap gap-4">
+        <Input
+          type="text"
+          placeholder="Search products..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="max-w-xs"
+        />
+        
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          className="px-4 py-2 border rounded-md"
+        >
+          <option value="date-desc">Date (Newest First)</option>
+          <option value="date-asc">Date (Oldest First)</option>
+          <option value="name-asc">Name (A-Z)</option>
+          <option value="name-desc">Name (Z-A)</option>
+        </select>
 
-      <IonCard>
-        <IonCardContent>
-          <IonGrid>
-            <IonRow>
-              <IonCol size="12">
-                <IonSearchbar
-                  value={searchText}
-                  onIonInput={e => setSearchText(e.detail.value!)}
-                  placeholder="Search products..."
-                />
-              </IonCol>
-            </IonRow>
-            <IonRow>
-              <IonCol size="12" sizeMd="4">
-                <IonSelect
-                  label="Sort by"
-                  value={sortBy}
-                  onIonChange={e => setSortBy(e.detail.value)}
-                >
-                  <IonSelectOption value="date-desc">Newest First</IonSelectOption>
-                  <IonSelectOption value="date-asc">Oldest First</IonSelectOption>
-                  <IonSelectOption value="name-asc">Name (A-Z)</IonSelectOption>
-                  <IonSelectOption value="name-desc">Name (Z-A)</IonSelectOption>
-                </IonSelect>
-              </IonCol>
-              <IonCol size="12" sizeMd="4">
-                <IonSegment value={owned} onIonChange={e => setOwned(e.detail.value as string)}>
-                  <IonSegmentButton value="all">
-                    <IonLabel>All</IonLabel>
-                  </IonSegmentButton>
-                  <IonSegmentButton value="owned">
-                    <IonLabel>Owned</IonLabel>
-                  </IonSegmentButton>
-                  <IonSegmentButton value="not-owned">
-                    <IonLabel>Not Owned</IonLabel>
-                  </IonSegmentButton>
-                </IonSegment>
-              </IonCol>
-            </IonRow>
-          </IonGrid>
-        </IonCardContent>
-      </IonCard>
+        <select
+          value={owned}
+          onChange={(e) => setOwned(e.target.value)}
+          className="px-4 py-2 border rounded-md"
+        >
+          <option value="all">All Products</option>
+          <option value="owned">Owned Only</option>
+          <option value="not-owned">Not Owned</option>
+        </select>
+      </div>
 
-      <IonList>
-        {Object.entries(groupedProducts).map(([monthYear, products]) => (
-          <IonItemGroup key={monthYear}>
-            <IonItemDivider className='ion-padding-start'>
-              <IonLabel>{monthYear}</IonLabel>
-            </IonItemDivider>
-            <ProductCardView products={products} />
-          </IonItemGroup>
-        ))}
-      </IonList>
-    </PageLayout>
+      {/* Grouped Products */}
+      {Object.entries(groupedProducts).map(([monthYear, products]) => (
+        <div key={monthYear} className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">{monthYear}</h2>
+          <ProductCardView 
+            products={products.map(p => ({
+              ...p,
+              onClick: () => onProductClick(p.isbn)
+            }))} 
+          />
+        </div>
+      ))}
+
+      {Object.keys(groupedProducts).length === 0 && (
+        <p className="text-gray-500 text-center py-8">No products found matching your filters.</p>
+      )}
+    </div>
   );
 }
+
 export default ReleasePage;
+

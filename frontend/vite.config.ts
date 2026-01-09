@@ -1,33 +1,31 @@
-/// <reference types="vitest" />
+import { defineConfig } from 'vite'
+import path from 'path'
+import react from '@vitejs/plugin-react'
 
-import legacy from '@vitejs/plugin-legacy';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
-
-export default defineConfig({
-  plugins: [
-    react(),
-    legacy(),
-    tailwindcss(),
-  ],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/setupTests.ts',
-    css: true,
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-    },
-    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
-  },
-  build: {
-    target: 'esnext',
-  },
-  optimizeDeps: {
-    esbuildOptions: {
-      target: 'esnext'
-    }
+// https://vitejs.dev/config/
+export default defineConfig(async () => {
+  let tailwindPlugin: any = null
+  try {
+    const mod = await import('@tailwindcss/vite')
+    tailwindPlugin = mod.default()
+  } catch (e) {
+    console.warn('Tailwind plugin not loaded, continuing without it:', e)
   }
-});
+
+  return {
+    plugins: [
+      react(),
+      ...(tailwindPlugin ? [tailwindPlugin] : []),
+    ],
+    base: './', // Use relative paths for Capacitor
+    server: {
+      port: parseInt(process.env.FRONTEND_PORT || '5173'),
+      host: '0.0.0.0',
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
+  }
+})
